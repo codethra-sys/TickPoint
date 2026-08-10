@@ -73,8 +73,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          # Use the pushed tag (e.g. v1.0.0) for both the GitHub release tag and title.
           tagName: ${{ github.ref_name }}
-          releaseName: 'TickPoint ${{ github.ref_name }}'
-          releaseBodyFile: 'RELEASE_DOC.md' # Uses the generated document for release notes
+          releaseName: ${{ github.ref_name }}
+          releaseBodyFile: 'RELEASE_DOC.md'
           releaseDraft: false
           prerelease: false
