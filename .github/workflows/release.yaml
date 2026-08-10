@@ -1,9 +1,9 @@
-name: Build & Release Executable
+name: Build & Release Executable with Release Doc
 
 on:
   push:
     tags:
-      - 'v*' # Triggers workflow when you push a version tag like v1.0.0
+      - 'v*' # Triggers when you push a version tag like v1.0.0
   workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
 
 jobs:
@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetches full Git history to build accurate release docs
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -33,13 +35,46 @@ jobs:
       - name: Install Frontend Dependencies
         run: npm ci
 
-      - name: Build Tauri Executable
+      # --- RELEASE DOC GENERATION STEP ---
+      - name: Generate Release Documentation
+        id: generate_doc
+        shell: bash
+        run: |
+          # Find the previous tag if it exists
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          echo "## 🎯 TickPoint Release Notes - ${GITHUB_REF_NAME}" > RELEASE_DOC.md
+          echo "" >> RELEASE_DOC.md
+          echo "**Release Date:** $(date +'%Y-%m-%d')" >> RELEASE_DOC.md
+          echo "" >> RELEASE_DOC.md
+          echo "### 📦 What's Included in this Build" >> RELEASE_DOC.md
+          echo "- Native Windows Offline Executable (`TickPoint_x64-setup.exe`)" >> RELEASE_DOC.md
+          echo "- Local SQLite Database Schema Engine (`timetracker.db`)" >> RELEASE_DOC.md
+          echo "- Jira-Style Estimation Engine & Calendar Worklog Grid" >> RELEASE_DOC.md
+          echo "" >> RELEASE_DOC.md
+          echo "### 📋 Changelog & Commit Summary" >> RELEASE_DOC.md
+          
+          if [ -z "$PREV_TAG" ]; then
+            echo "Initial release build. Commits included:" >> RELEASE_DOC.md
+            git log --pretty=format:"* %s (%h)" -n 20 >> RELEASE_DOC.md
+          else
+            echo "Changes since **$PREV_TAG**:" >> RELEASE_DOC.md
+            git log ${PREV_TAG}..HEAD --pretty=format:"* %s (%h)" >> RELEASE_DOC.md
+          fi
+          
+          echo "" >> RELEASE_DOC.md
+          echo "" >> RELEASE_DOC.md
+          echo "---" >> RELEASE_DOC.md
+          echo "*Generated automatically by TickPoint CI/CD Pipeline.*" >> RELEASE_DOC.md
+
+      # --- BUILD TAURI & PUBLISH RELEASE ---
+      - name: Build Tauri Executable & Create Release
         uses: tauri-apps/tauri-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: 'TraceLog ${{ github.ref_name }}'
-          releaseBody: 'Automated release build for TraceLog.'
+          releaseName: 'TickPoint ${{ github.ref_name }}'
+          releaseBodyFile: 'RELEASE_DOC.md' # Uses the generated document for release notes
           releaseDraft: false
           prerelease: false
