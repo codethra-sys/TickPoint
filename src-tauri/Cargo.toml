@@ -1,0 +1,23 @@
+[package]
+name = "tickpoint"
+version = "1.0.0"
+description = "Lightweight desktop time tracker with Jira-style estimates"
+authors = ["you"]
+edition = "2021"
+
+[lib]
+name = "tickpoint_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-opener = "2"
+tauri-plugin-sql = { version = "2.4.0", features = ["sqlite"] }
+tauri-plugin-notification = "2.3.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri-plugin-dialog = "2.7.2"
+tauri-plugin-fs = "2.5.1"
